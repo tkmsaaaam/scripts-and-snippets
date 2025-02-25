@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+</head>
+
+<body>
+  <input id="url" type="url" placeholder="https://assets.app.engoo.com/organizations/xxx.mpga"></input><br />
+  <input type="button" value="読み込む" onclick="set()" /><br />
+  <audio id="audio" controls src=""></audio><br />
+  <input type="button" value="再生" onClick="play()" />
+  <input type="button" value="停止" onClick="pause()" /><br />
+  <input type="button" value="速く" onClick="changeSpeed(0.1)" />
+  <input type="button" value="遅く" onClick="changeSpeed(-0.1)" /><br />
+  再生位置 :<span id="position">-</span><br />
+  再生速度 : <span id="speed">1.0</span><br />
+  ファイル名 :<span id="filename">none</span><br />
+  <input type="number" id="diff" placeholder="3"></input><button id="foward_btn">foward</button><button
+    id="back_btn">back</button><br />
+
+
+  <script>
+
+    function init() {
+      var f = document.getElementById("filename");
+      f.addEventListener("change", function (event) {
+        var URL = URL || webkitURL;
+        var file = event.target.files[0];
+        document.querySelector('audio').src = URL.createObjectURL(file);
+        document.getElementById('filename').innerHTML = document.querySelector('audio').src;
+      }, false);
+
+      var v = document.getElementById("audio");
+      v.addEventListener("timeupdate", function () {
+        document.getElementById("position").innerHTML = v.currentTime;
+        document.getElementById("speed").innerHTML = v.playbackRate.toFixed(1);
+      }, false);
+
+      document.getElementById('foward_btn').addEventListener('click', () => {
+        let currentTime = document.getElementById('audio').currentTime;
+        let diff = document.getElementById('diff').value;
+        if (!diff) diff = 3;
+        document.getElementById('audio').currentTime = currentTime + diff;
+      })
+      document.getElementById('back_btn').addEventListener('click', () => {
+        let currentTime = document.getElementById('audio').currentTime;
+        let diff = document.getElementById('diff').value;
+        if (!diff) diff = 3;
+        document.getElementById('audio').currentTime = currentTime - diff;
+      })
+      const queryString = window.location.search;
+      const params = new URLSearchParams(queryString);
+      const audioUrl = params.get('url')
+      inject(audioUrl)
+    }
+
+    function inject(url) {
+      var v = document.getElementById("audio");
+      v.src = url;
+      document.getElementById('filename').innerHTML = v.src;
+    }
+
+    function set() {
+      var url = document.getElementById("url").value;
+      inject(url)
+    }
+
+    function play() {
+      var v = document.getElementById("audio");
+      if (v == null || v.src == null) return;
+      v.play();
+    }
+
+    function pause() {
+      var v = document.getElementById("audio");
+      if (v == null || v.src == null) return;
+      v.pause();
+    }
+
+    function changeSpeed(val) {
+      var v = document.getElementById("audio");
+      if (v == null || v.src == null) return;
+      if (v.playbackRate + val < 0.1) v.playbackRate = 0.1;
+      else v.playbackRate += val;
+    }
+
+    init();
+  </script>
+</body>
+
+</html>
