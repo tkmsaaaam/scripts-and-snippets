@@ -1,14 +1,14 @@
 {
-  "manifest_version": 3,
-  "version": "1.0",
-  "name": "rss-finder",
-  "content_scripts": [
-    {
-      "js": ["lib/scripts.js"]
-    }
-  ],
-  "action": {
-    "default_title": "rss-finder",
-    "default_popup": "src/popup.html"
-  }
+	"manifest_version": 3,
+	"version": "1.0",
+	"name": "rss-finder",
+	"content_scripts": [
+		{
+			"js": ["lib/scripts.js"]
+		}
+	],
+	"action": {
+		"default_title": "rss-finder",
+		"default_popup": "src/popup.html"
+	}
 }

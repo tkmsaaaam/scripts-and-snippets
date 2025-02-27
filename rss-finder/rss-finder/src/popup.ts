@@ -4,7 +4,7 @@
 		chrome.tabs.query(
 			{ active: true, lastFocusedWindow: true },
 			(tabs: chrome.tabs.Tab[]): void => {
-        if (tabs.length < 1) return;
+				if (tabs.length < 1) return;
 				if (!tabs[0].id) return;
 				chrome.tabs.sendMessage(
 					tabs[0].id,
@@ -31,9 +31,9 @@
 									await navigator.clipboard.writeText(`${res}`);
 								});
 						});
-					}
+					},
 				);
-			}
+			},
 		);
 	});
 })();

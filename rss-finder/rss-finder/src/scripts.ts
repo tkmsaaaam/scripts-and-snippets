@@ -5,7 +5,7 @@
 				.filter(
 					element =>
 						element.type == 'application/rss+xml' ||
-						element.type == 'application/atom+xml'
+						element.type == 'application/atom+xml',
 				)
 				.map(element => element.href);
 			sendResponse(urlList);
