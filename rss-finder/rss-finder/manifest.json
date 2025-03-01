@@ -4,6 +4,7 @@
 	"name": "rss-finder",
 	"content_scripts": [
 		{
+			"matches": ["<all_urls>"],
 			"js": ["lib/scripts.js"]
 		}
 	],
