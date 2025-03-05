@@ -1,0 +1,15 @@
+{
+	"manifest_version": 3,
+	"version": "1.0",
+	"name": "commit-checker",
+	"content_scripts": [
+		{
+			"matches": ["https://github.com/*"],
+			"js": ["lib/scripts.js"]
+		}
+	],
+	"action": {
+		"default_title": "commit-checker",
+		"default_popup": "src/popup.html"
+	}
+}
