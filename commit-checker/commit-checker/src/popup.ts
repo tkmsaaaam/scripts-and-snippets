@@ -18,6 +18,9 @@
 					document
 						.getElementById('results')
 						?.insertAdjacentHTML('afterbegin', html);
+					const status = document.getElementById('status');
+					if (!status) return;
+					status.textContent = 'Done';
 				},
 			);
 		},
