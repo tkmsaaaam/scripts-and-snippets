@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>URL Compressor</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      box-sizing: border-box;
+      background-color: #f0f2f5;
+    }
+
+    .controls {
+      margin-bottom: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .stats-container {
+      display: flex;
+      gap: 15px;
+      background: #fff;
+      padding: 8px 12px;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      font-size: 0.85em;
+      color: #444;
+      flex-grow: 1;
+    }
+
+    .stat-item b {
+      color: #007bff;
+    }
+
+    textarea {
+      flex-grow: 1;
+      width: 100%;
+      padding: 15px;
+      font-size: 16px;
+      /* スマホでの自動ズーム防止 */
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      resize: none;
+      box-sizing: border-box;
+      font-family: monospace;
+      line-height: 1.5;
+    }
+
+    button {
+      padding: 10px 20px;
+      cursor: pointer;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+
+    button:active {
+      background-color: #0056b3;
+      transform: translateY(1px);
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="controls">
+    <button id="copyBtn">URLをコピー</button>
+    <div class="stats-container">
+      <div class="stat-item">本文: <b id="textCount">0</b> 文字</div>
+      <div class="stat-item">URL長: <b id="urlCount">0</b> / 2000</div>
+    </div>
+  </div>
+
+  <textarea id="editor" placeholder="ここに長いテキストを入力してください..."></textarea>
+
+  <script>
+    const editor = document.getElementById('editor');
+    const copyBtn = document.getElementById('copyBtn');
+    const textCount = document.getElementById('textCount');
+    const urlCount = document.getElementById('urlCount');
+
+    // --- 圧縮・解凍ロジック ---
+    async function compressData(text) {
+      const stream = new Blob([text]).stream();
+      const compressedStream = stream.pipeThrough(new CompressionStream('gzip'));
+      const chunks = [];
+      const reader = compressedStream.getReader();
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+      const arrayBuffer = await new Blob(chunks).arrayBuffer();
+      return btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    async function decompressData(base64) {
+      try {
+        const b64 = base64.replace(/-/g, '+').replace(/_/g, '/');
+        const binary = atob(b64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        const stream = new Blob([bytes]).stream();
+        const decompressedStream = stream.pipeThrough(new DecompressionStream('gzip'));
+        return await new Response(decompressedStream).text();
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // --- 表示更新 ---
+    function updateStats() {
+      textCount.textContent = editor.value.length.toLocaleString();
+      const currentUrlLength = window.location.href.length;
+      urlCount.textContent = currentUrlLength.toLocaleString();
+
+      // 2000文字を超えそうなら警告色にする（任意）
+      urlCount.style.color = currentUrlLength > 2000 ? "#d93025" : "#007bff";
+    }
+
+    // --- イベント処理 ---
+    editor.addEventListener('input', async () => {
+      const text = editor.value;
+      if (!text) {
+        window.history.replaceState({}, '', window.location.pathname);
+      } else {
+        const compressed = await compressData(text);
+        const url = new URL(window.location);
+        url.searchParams.set('data', compressed);
+        window.history.replaceState({}, '', url);
+      }
+      updateStats();
+    });
+
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(window.location.href).then(() => {
+        const originalText = copyBtn.textContent;
+        copyBtn.textContent = "コピー完了！";
+        setTimeout(() => copyBtn.textContent = originalText, 2000);
+      });
+    });
+
+    window.addEventListener('load', async () => {
+      const params = new URLSearchParams(window.location.search);
+      const data = params.get('data');
+      if (data) {
+        const text = await decompressData(data);
+        if (text !== null) {
+          editor.value = text;
+        }
+      }
+      updateStats();
+    });
+  </script>
+</body>
+
+</html>
