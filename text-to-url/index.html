@@ -9,10 +9,10 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       margin: 0;
-      padding: 15px;
+      padding: 10px;
       display: flex;
       flex-direction: column;
-      height: 100vh;
+      min-height: 100vh;
       box-sizing: border-box;
       background-color: #f0f2f5;
     }
@@ -21,18 +21,23 @@
       margin-bottom: 10px;
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 8px;
       align-items: center;
+      position: sticky;
+      top: 0;
+      background-color: #f0f2f5;
+      padding: 5px 0;
+      z-index: 10;
     }
 
     .stats-container {
       display: flex;
-      gap: 15px;
+      gap: 12px;
       background: #fff;
       padding: 8px 12px;
       border-radius: 6px;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-      font-size: 0.85em;
+      font-size: 0.8em;
       color: #444;
       flex-grow: 1;
     }
@@ -41,34 +46,102 @@
       color: #007bff;
     }
 
-    textarea {
+    .main-container {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
       flex-grow: 1;
-      width: 100%;
+    }
+
+    @media (min-width: 768px) {
+      body {
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      .main-container {
+        flex-direction: row;
+        overflow: hidden;
+      }
+
+      .panel {
+        height: 100%;
+      }
+    }
+
+    .panel {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 400px;
+    }
+
+    #editor,
+    #viewer {
+      flex: 1;
       padding: 15px;
       font-size: 16px;
-      /* スマホでの自動ズーム防止 */
       border: 1px solid #ccc;
       border-radius: 8px;
-      resize: none;
       box-sizing: border-box;
+      background: #fff;
+      white-space: pre-wrap;
+      word-break: break-all;
+      line-height: 1.6;
+    }
+
+    #editor {
       font-family: monospace;
-      line-height: 1.5;
+      resize: none;
+      outline: none;
+    }
+
+    #editor:focus {
+      border-color: #007bff;
+    }
+
+    #viewer {
+      border-color: #e0e0e0;
+      background-color: #fafafa;
+      overflow-y: auto;
+    }
+
+    #viewer a {
+      color: #007bff;
+      text-decoration: underline;
+    }
+
+    .label {
+      font-size: 11px;
+      font-weight: bold;
+      color: #888;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
 
     button {
-      padding: 10px 20px;
+      padding: 10px 16px;
       cursor: pointer;
-      background-color: #007bff;
-      color: white;
       border: none;
       border-radius: 6px;
       font-weight: bold;
-      transition: background 0.2s;
+      font-size: 14px;
+      transition: opacity 0.2s;
     }
 
     button:active {
-      background-color: #0056b3;
-      transform: translateY(1px);
+      opacity: 0.7;
+    }
+
+    #copyBtn {
+      background-color: #007bff;
+      color: white;
+    }
+
+    #clearBtn {
+      background-color: #e0e0e0;
+      color: #444;
     }
   </style>
 </head>
@@ -77,21 +150,43 @@
 
   <div class="controls">
     <button id="copyBtn">URLをコピー</button>
+    <button id="clearBtn">クリア</button>
     <div class="stats-container">
-      <div class="stat-item">本文: <b id="textCount">0</b> 文字</div>
+      <div class="stat-item">本文: <b id="textCount">0</b></div>
       <div class="stat-item">URL長: <b id="urlCount">0</b> / 2000</div>
     </div>
   </div>
 
-  <textarea id="editor" placeholder="ここに長いテキストを入力してください..."></textarea>
+  <div class="main-container">
+    <div class="panel">
+      <span class="label">Editor</span>
+      <textarea id="editor" placeholder="ここにテキストを入力..."></textarea>
+    </div>
+
+    <div class="panel">
+      <span class="label">Viewer</span>
+      <div id="viewer"></div>
+    </div>
+  </div>
 
   <script>
     const editor = document.getElementById('editor');
+    const viewer = document.getElementById('viewer');
     const copyBtn = document.getElementById('copyBtn');
+    const clearBtn = document.getElementById('clearBtn');
     const textCount = document.getElementById('textCount');
     const urlCount = document.getElementById('urlCount');
 
-    // --- 圧縮・解凍ロジック ---
+    // URLをリンクに変換
+    function linkify(text) {
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      return text.replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[m])
+        .replace(urlRegex, url => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`);
+    }
+
+    // 圧縮処理
     async function compressData(text) {
       const stream = new Blob([text]).stream();
       const compressedStream = stream.pipeThrough(new CompressionStream('gzip'));
@@ -107,6 +202,7 @@
         .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
     }
 
+    // 解凍処理
     async function decompressData(base64) {
       try {
         const b64 = base64.replace(/-/g, '+').replace(/_/g, '/');
@@ -118,23 +214,21 @@
         const stream = new Blob([bytes]).stream();
         const decompressedStream = stream.pipeThrough(new DecompressionStream('gzip'));
         return await new Response(decompressedStream).text();
-      } catch (e) {
-        return null;
-      }
+      } catch (e) { return null; }
     }
 
-    // --- 表示更新 ---
+    // 状態更新
     function updateStats() {
-      textCount.textContent = editor.value.length.toLocaleString();
+      const text = editor.value;
+      textCount.textContent = text.length.toLocaleString();
+      viewer.innerHTML = linkify(text);
       const currentUrlLength = window.location.href.length;
       urlCount.textContent = currentUrlLength.toLocaleString();
-
-      // 2000文字を超えそうなら警告色にする（任意）
       urlCount.style.color = currentUrlLength > 2000 ? "#d93025" : "#007bff";
     }
 
-    // --- イベント処理 ---
-    editor.addEventListener('input', async () => {
+    // URL同期
+    async function syncToUrl() {
       const text = editor.value;
       if (!text) {
         window.history.replaceState({}, '', window.location.pathname);
@@ -145,7 +239,9 @@
         window.history.replaceState({}, '', url);
       }
       updateStats();
-    });
+    }
+
+    editor.addEventListener('input', syncToUrl);
 
     copyBtn.addEventListener('click', () => {
       navigator.clipboard.writeText(window.location.href).then(() => {
@@ -155,6 +251,15 @@
       });
     });
 
+    clearBtn.addEventListener('click', () => {
+      if (editor.value.length === 0) return;
+      if (confirm('テキストをすべて削除しますか？')) {
+        editor.value = '';
+        syncToUrl();
+      }
+    });
+
+    // 初期読み込み
     window.addEventListener('load', async () => {
       const params = new URLSearchParams(window.location.search);
       const data = params.get('data');
