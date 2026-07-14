@@ -134,6 +134,11 @@
       opacity: 0.7;
     }
 
+    #saveBtn {
+      background-color: #28a745;
+      color: white;
+    }
+
     #copyBtn {
       background-color: #007bff;
       color: white;
@@ -149,6 +154,7 @@
 <body>
 
   <div class="controls">
+    <button id="saveBtn">URLに保存</button>
     <button id="copyBtn">URLをコピー</button>
     <button id="clearBtn">クリア</button>
     <div class="stats-container">
@@ -172,6 +178,7 @@
   <script>
     const editor = document.getElementById('editor');
     const viewer = document.getElementById('viewer');
+    const saveBtn = document.getElementById('saveBtn');
     const copyBtn = document.getElementById('copyBtn');
     const clearBtn = document.getElementById('clearBtn');
     const textCount = document.getElementById('textCount');
@@ -243,6 +250,15 @@
 
     editor.addEventListener('input', syncToUrl);
 
+    // 「URLに保存」ボタンのイベント（手動で明示的に同期を走らせる）
+    saveBtn.addEventListener('click', async () => {
+      const originalText = saveBtn.textContent;
+      saveBtn.textContent = "保存完了！";
+      await syncToUrl();
+      setTimeout(() => saveBtn.textContent = originalText, 1500);
+    });
+
+    // コピーボタンのイベント
     copyBtn.addEventListener('click', () => {
       navigator.clipboard.writeText(window.location.href).then(() => {
         const originalText = copyBtn.textContent;
