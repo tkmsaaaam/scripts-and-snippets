@@ -39,11 +39,42 @@
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
       font-size: 0.8em;
       color: #444;
-      flex-grow: 1;
+      align-items: center;
     }
 
     .stat-item b {
       color: #007bff;
+    }
+
+
+    .url-display-container {
+      display: flex;
+      align-items: center;
+      flex-grow: 1;
+      background: #fff;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .url-display-container span {
+      font-size: 11px;
+      font-weight: bold;
+      color: #888;
+      margin-right: 8px;
+      white-space: nowrap;
+    }
+
+    #realtimeUrl {
+      flex-grow: 1;
+      border: none;
+      background: transparent;
+      font-family: monospace;
+      font-size: 13px;
+      color: #333;
+      outline: none;
+      width: 100%;
     }
 
     .main-container {
@@ -161,6 +192,10 @@
       <div class="stat-item">本文: <b id="textCount">0</b></div>
       <div class="stat-item">URL長: <b id="urlCount">0</b> / 2000</div>
     </div>
+    <div class="url-display-container">
+      <span>URL:</span>
+      <input type="text" id="realtimeUrl" readonly placeholder="ここにリアルタイムでURLが生成されます" onclick="this.select()">
+    </div>
   </div>
 
   <div class="main-container">
@@ -183,8 +218,8 @@
     const clearBtn = document.getElementById('clearBtn');
     const textCount = document.getElementById('textCount');
     const urlCount = document.getElementById('urlCount');
+    const realtimeUrlInput = document.getElementById('realtimeUrl');
 
-    // URLをリンクに変換
     function linkify(text) {
       const urlRegex = /(https?:\/\/[^\s]+)/g;
       return text.replace(/[&<>"']/g, m => ({
@@ -193,7 +228,6 @@
         .replace(urlRegex, url => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`);
     }
 
-    // 圧縮処理
     async function compressData(text) {
       const stream = new Blob([text]).stream();
       const compressedStream = stream.pipeThrough(new CompressionStream('gzip'));
@@ -209,7 +243,6 @@
         .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
     }
 
-    // 解凍処理
     async function decompressData(base64) {
       try {
         const b64 = base64.replace(/-/g, '+').replace(/_/g, '/');
@@ -224,33 +257,44 @@
       } catch (e) { return null; }
     }
 
-    // 状態更新
-    function updateStats() {
+    function updateStats(currentUrl) {
       const text = editor.value;
       textCount.textContent = text.length.toLocaleString();
       viewer.innerHTML = linkify(text);
-      const currentUrlLength = window.location.href.length;
+      realtimeUrlInput.value = currentUrl;
+      const currentUrlLength = currentUrl.length;
       urlCount.textContent = currentUrlLength.toLocaleString();
       urlCount.style.color = currentUrlLength > 2000 ? "#d93025" : "#007bff";
     }
 
-    // URL同期
     async function syncToUrl() {
       const text = editor.value;
-      if (!text) {
-        window.history.replaceState({}, '', window.location.pathname);
-      } else {
+      let targetUrl = window.location.origin + window.location.pathname;
+
+      if (text) {
         const compressed = await compressData(text);
         const url = new URL(window.location);
         url.searchParams.set('data', compressed);
-        window.history.replaceState({}, '', url);
+        targetUrl = url.toString();
+
+        try {
+          window.history.replaceState({}, '', url);
+        } catch (e) {
+          console.error('URLの更新に失敗', e)
+        }
+      } else {
+        try {
+          window.history.replaceState({}, '', window.location.pathname);
+        } catch (e) {
+          console.error('URLの更新に失敗', e)
+        }
       }
-      updateStats();
+
+      updateStats(targetUrl);
     }
 
     editor.addEventListener('input', syncToUrl);
 
-    // 「URLに保存」ボタンのイベント（手動で明示的に同期を走らせる）
     saveBtn.addEventListener('click', async () => {
       const originalText = saveBtn.textContent;
       saveBtn.textContent = "保存完了！";
@@ -258,9 +302,9 @@
       setTimeout(() => saveBtn.textContent = originalText, 1500);
     });
 
-    // コピーボタンのイベント
     copyBtn.addEventListener('click', () => {
-      navigator.clipboard.writeText(window.location.href).then(() => {
+      const urlToCopy = realtimeUrlInput.value || window.location.href;
+      navigator.clipboard.writeText(urlToCopy).then(() => {
         const originalText = copyBtn.textContent;
         copyBtn.textContent = "コピー完了！";
         setTimeout(() => copyBtn.textContent = originalText, 2000);
@@ -275,7 +319,6 @@
       }
     });
 
-    // 初期読み込み
     window.addEventListener('load', async () => {
       const params = new URLSearchParams(window.location.search);
       const data = params.get('data');
@@ -285,7 +328,8 @@
           editor.value = text;
         }
       }
-      updateStats();
+      const initialUrl = window.location.href;
+      updateStats(initialUrl);
     });
   </script>
 </body>
