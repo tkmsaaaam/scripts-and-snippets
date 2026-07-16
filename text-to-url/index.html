@@ -185,23 +185,23 @@
 <body>
 
   <div class="controls">
-    <button id="saveBtn">URLに保存</button>
-    <button id="copyBtn">URLをコピー</button>
-    <button id="clearBtn">クリア</button>
+    <button id="saveBtn">Save</button>
+    <button id="copyBtn">Copy</button>
+    <button id="clearBtn">Clear</button>
     <div class="stats-container">
-      <div class="stat-item">本文: <b id="textCount">0</b></div>
-      <div class="stat-item">URL長: <b id="urlCount">0</b> / 2000</div>
+      <div class="stat-item">Text: <b id="textCount">0</b></div>
+      <div class="stat-item">URL Length: <b id="urlCount">0</b> / 2000</div>
     </div>
     <div class="url-display-container">
       <span>URL:</span>
-      <input type="text" id="realtimeUrl" readonly placeholder="ここにリアルタイムでURLが生成されます" onclick="this.select()">
+      <input type="text" id="realtimeUrl" readonly placeholder="realtime URL" onclick="this.select()">
     </div>
   </div>
 
   <div class="main-container">
     <div class="panel">
       <span class="label">Editor</span>
-      <textarea id="editor" placeholder="ここにテキストを入力..."></textarea>
+      <textarea id="editor" placeholder="type here..."></textarea>
     </div>
 
     <div class="panel">
