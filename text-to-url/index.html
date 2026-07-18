@@ -5,7 +5,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>URL Compressor</title>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -47,7 +46,6 @@
       color: #007bff;
     }
 
-
     .url-display-container {
       display: flex;
       align-items: center;
@@ -57,13 +55,13 @@
       border-radius: 6px;
       border: 1px solid #ccc;
       box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+      gap: 4px;
     }
 
     .url-display-container span {
       font-size: 11px;
       font-weight: bold;
       color: #888;
-      margin-right: 8px;
       white-space: nowrap;
     }
 
@@ -171,77 +169,33 @@
       color: white;
     }
 
-    #copyBtn {
-      background-color: #007bff;
-      color: white;
-    }
-
-    #qrBtn {
-      background-color: #17a2b8;
-      color: white;
-    }
-
     #clearBtn {
       background-color: #e0e0e0;
       color: #444;
     }
 
-    /* モーダルのスタイル設定 */
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      display: flex;
-      justify-content: center;
+    #copyBtn {
+      padding: 4px;
+      background: transparent;
+      color: #007bff;
+      display: inline-flex;
       align-items: center;
-      z-index: 1000;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.2s ease;
+      justify-content: center;
+      border-radius: 4px;
     }
 
-    .modal-overlay.active {
-      opacity: 1;
-      pointer-events: auto;
+    #copyBtn:hover {
+      background-color: rgba(0, 123, 255, 0.08);
     }
 
-    .modal-content {
-      background-color: #fff;
-      padding: 24px;
-      border-radius: 12px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-      text-align: center;
-      max-width: 90%;
-      width: 320px;
-      box-sizing: border-box;
-      transform: scale(0.9);
-      transition: transform 0.2s ease;
+    #copyBtn.success {
+      color: #28a745;
     }
 
-    .modal-overlay.active .modal-content {
-      transform: scale(1);
-    }
-
-    .modal-title {
-      font-size: 16px;
-      font-weight: bold;
-      margin-bottom: 16px;
-      color: #333;
-    }
-
-    #qrcodeCanvas {
-      margin: 0 auto 16px auto;
-      display: block;
-      max-width: 100%;
-    }
-
-    #closeModalBtn {
-      background-color: #6c757d;
-      color: white;
-      width: 100%;
+    #copyBtn svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
     }
   </style>
 </head>
@@ -250,14 +204,20 @@
 
   <div class="controls">
     <button id="saveBtn">Save</button>
-    <button id="copyBtn">Copy</button>
-    <button id="qrBtn">QR Code</button>
     <button id="clearBtn">Clear</button>
+
     <div class="stats-container">
       <div class="stat-item">Text: <b id="textCount">0</b></div>
       <div class="stat-item">URL Length: <b id="urlCount">0</b> / 2000</div>
     </div>
+
     <div class="url-display-container">
+      <button id="copyBtn" title="URLをコピー">
+        <svg viewBox="0 0 24 24">
+          <path
+            d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+        </svg>
+      </button>
       <span>URL:</span>
       <input type="text" id="realtimeUrl" readonly placeholder="realtime URL" onclick="this.select()">
     </div>
@@ -275,28 +235,15 @@
     </div>
   </div>
 
-  <div class="modal-overlay" id="qrModal">
-    <div class="modal-content">
-      <div class="modal-title">QR Code Link</div>
-      <canvas id="qrcodeCanvas"></canvas>
-      <button id="closeModalBtn">Close</button>
-    </div>
-  </div>
-
   <script>
     const editor = document.getElementById('editor');
     const viewer = document.getElementById('viewer');
     const saveBtn = document.getElementById('saveBtn');
     const copyBtn = document.getElementById('copyBtn');
-    const qrBtn = document.getElementById('qrBtn');
     const clearBtn = document.getElementById('clearBtn');
     const textCount = document.getElementById('textCount');
     const urlCount = document.getElementById('urlCount');
     const realtimeUrlInput = document.getElementById('realtimeUrl');
-
-    const qrModal = document.getElementById('qrModal');
-    const qrcodeCanvas = document.getElementById('qrcodeCanvas');
-    const closeModalBtn = document.getElementById('closeModalBtn');
 
     function linkify(text) {
       const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -383,37 +330,9 @@
     copyBtn.addEventListener('click', () => {
       const urlToCopy = realtimeUrlInput.value || window.location.href;
       navigator.clipboard.writeText(urlToCopy).then(() => {
-        const originalText = copyBtn.textContent;
-        copyBtn.textContent = "コピー完了！";
-        setTimeout(() => copyBtn.textContent = originalText, 2000);
+        copyBtn.classList.add('success');
+        setTimeout(() => copyBtn.classList.remove('success'), 1500);
       });
-    });
-
-    qrBtn.addEventListener('click', () => {
-      const urlToEncode = realtimeUrlInput.value || window.location.href;
-
-      QRCode.toCanvas(qrcodeCanvas, urlToEncode, {
-        width: 200,
-        margin: 2,
-        errorCorrectionLevel: 'M'
-      }, function (error) {
-        if (error) {
-          console.error('QRコードの生成に失敗しました:', error);
-          alert('QRコードの生成に失敗しました。');
-          return;
-        }
-        qrModal.classList.add('active');
-      });
-    });
-
-    closeModalBtn.addEventListener('click', () => {
-      qrModal.classList.remove('active');
-    });
-
-    qrModal.addEventListener('click', (e) => {
-      if (e.target === qrModal) {
-        qrModal.classList.remove('active');
-      }
     });
 
     clearBtn.addEventListener('click', () => {
